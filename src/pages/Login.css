@@ -3,50 +3,49 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  background: #f8f9fa;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: var(--space-4);
+  background: var(--color-bg);
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  padding: 2.5rem 2rem;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-subtle);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-4);
 }
 
-.login-header h1 {
+.login-brand {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #111;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-primary);
 }
 
 .login-header p {
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .login-form label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #374151;
-  margin-top: 0.75rem;
+  color: var(--color-text);
+  margin-top: var(--space-3);
 }
 
 .login-form label:first-of-type {
@@ -56,39 +55,41 @@
 .login-form input {
   padding: 0.65rem 0.85rem;
   font-size: 0.95rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .login-form input:focus {
-  border-color: #111;
-  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1);
 }
 
 .login-error {
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
   font-size: 0.8rem;
-  color: #dc2626;
+  color: var(--color-danger);
   line-height: 1.4;
 }
 
 .login-btn-primary {
-  margin-top: 1.25rem;
-  padding: 0.7rem 1rem;
+  margin-top: var(--space-4);
+  padding: 0.7rem var(--space-3);
   font-size: 0.95rem;
   font-weight: 500;
-  color: #fff;
-  background: #111;
+  color: var(--color-surface);
+  background: var(--color-primary);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-standard);
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: opacity 0.15s;
 }
 
 .login-btn-primary:hover:not(:disabled) {
-  background: #333;
+  opacity: 0.9;
 }
 
 .login-btn-primary:disabled {
@@ -99,8 +100,8 @@
 .login-divider {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin: 1.5rem 0;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
 }
 
 .login-divider::before,
@@ -108,12 +109,12 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 
 .login-divider span {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
 }
 
 .login-btn-google {
@@ -122,20 +123,20 @@
   justify-content: center;
   gap: 0.6rem;
   width: 100%;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem var(--space-3);
   font-size: 0.95rem;
   font-weight: 500;
-  color: #111;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .login-btn-google:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--color-bg);
+  border-color: var(--color-text-secondary);
 }
 
 .login-btn-google:disabled {
@@ -149,10 +150,10 @@
 }
 
 .login-toggle {
-  margin: 1.5rem 0 0;
+  margin: var(--space-4) 0 0;
   text-align: center;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .login-toggle button {
@@ -161,12 +162,12 @@
   padding: 0;
   font-size: inherit;
   font-weight: 500;
-  color: #111;
+  color: var(--color-primary);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .login-toggle button:hover {
-  color: #333;
+  opacity: 0.8;
 }

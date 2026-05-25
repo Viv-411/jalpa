@@ -5,13 +5,37 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from 'firebase/auth'
-import { auth } from '../firebase'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '../firebase'
 import './Login.css'
 
 const googleProvider = new GoogleAuthProvider()
 
+async function createUserDocument(uid, { name, email }) {
+  await setDoc(doc(db, 'users', uid), {
+    name,
+    email,
+    elo: 1000,
+    usedTopics: [],
+    createdAt: serverTimestamp(),
+  })
+}
+
+async function ensureUserDocument(user) {
+  const userRef = doc(db, 'users', user.uid)
+  const snapshot = await getDoc(userRef)
+
+  if (!snapshot.exists()) {
+    await createUserDocument(user.uid, {
+      name: user.displayName || 'Debater',
+      email: user.email,
+    })
+  }
+}
+
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -24,7 +48,8 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const credential = await createUserWithEmailAndPassword(auth, email, password)
+        await createUserDocument(credential.user.uid, { name: name.trim(), email })
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }
@@ -40,7 +65,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await signInWithPopup(auth, googleProvider)
+      const result = await signInWithPopup(auth, googleProvider)
+      await ensureUserDocument(result.user)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -48,15 +74,36 @@ export default function Login() {
     }
   }
 
+  function toggleMode() {
+    setIsSignUp(!isSignUp)
+    setError('')
+    setName('')
+  }
+
   return (
     <div className="login-page">
       <div className="login-card">
         <header className="login-header">
-          <h1>Debate</h1>
+          <h1 className="login-brand">Jalpa</h1>
           <p>{isSignUp ? 'Create your account' : 'Sign in to continue'}</p>
         </header>
 
         <form className="login-form" onSubmit={handleEmailSubmit}>
+          {isSignUp && (
+            <>
+              <label htmlFor="name">Full name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+                autoComplete="name"
+              />
+            </>
+          )}
+
           <label htmlFor="email">Email</label>
           <input
             id="email"
@@ -120,13 +167,7 @@ export default function Login() {
 
         <p className="login-toggle">
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp)
-              setError('')
-            }}
-          >
+          <button type="button" onClick={toggleMode}>
             {isSignUp ? 'Sign in' : 'Sign up'}
           </button>
         </p>

@@ -2,12 +2,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Home from './pages/Home'
+import TopicSelect from './pages/TopicSelect'
+import Matchmaking from './pages/Matchmaking'
+import TopicReveal from './pages/TopicReveal'
+import Call from './pages/Call'
+import Leaderboard from './pages/Leaderboard'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <p>Loading…</p>
+    return <p className="app-loading">Loading…</p>
   }
 
   if (!user) {
@@ -21,7 +26,7 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <p>Loading…</p>
+    return <p className="app-loading">Loading…</p>
   }
 
   if (user) {
@@ -41,6 +46,46 @@ function App() {
             element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/topics"
+            element={
+              <ProtectedRoute>
+                <TopicSelect />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/matchmaking"
+            element={
+              <ProtectedRoute>
+                <Matchmaking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/debate/:debateId"
+            element={
+              <ProtectedRoute>
+                <TopicReveal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/call/:debateId"
+            element={
+              <ProtectedRoute>
+                <Call />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute>
+                <Leaderboard />
               </ProtectedRoute>
             }
           />
