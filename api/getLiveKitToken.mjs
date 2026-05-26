@@ -22,7 +22,13 @@ export default async function handler(req, res) {
     identity: participantName,
   })
 
-  at.addGrant({ roomJoin: true, room: roomName })
+  at.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+    canPublishData: true,
+  })
 
   const token = await at.toJwt()
   return res.status(200).json({ token })
