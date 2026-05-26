@@ -20,6 +20,7 @@ export default async function handler(req, res) {
 
   const at = new AccessToken(apiKey, apiSecret, {
     identity: participantName,
+    ttl: '2h',
   })
 
   at.addGrant({

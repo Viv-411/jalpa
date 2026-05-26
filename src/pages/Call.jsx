@@ -57,6 +57,7 @@ export default function Call() {
   const mixedSourcesRef = useRef([])
   const recordingStartedRef = useRef(false)
   const audioBlobRef = useRef(null)
+  const attachedAudioTrackSidsRef = useRef(new Set())
 
   const mySide = debate?.sides?.[user?.uid]
 
@@ -223,8 +224,48 @@ export default function Call() {
           }
         })
 
-        room.on(RoomEvent.TrackSubscribed, () => {
+        function attachRemoteAudio(track) {
+          if (cancelled) return
+          if (
+            track.kind !== Track.Kind.Audio ||
+            attachedAudioTrackSidsRef.current.has(track.sid)
+          ) {
+            return
+          }
+          attachedAudioTrackSidsRef.current.add(track.sid)
+          const audioElement = track.attach()
+          audioElement.autoplay = true
+          document.body.appendChild(audioElement)
+        }
+
+        function detachRemoteAudio(track) {
+          if (cancelled) return
+          if (track.kind !== Track.Kind.Audio) return
+          attachedAudioTrackSidsRef.current.delete(track.sid)
+          const elements = track.detach()
+          elements.forEach((el) => el.remove())
+        }
+
+        function attachExistingRemoteAudio() {
+          if (cancelled) return
+          for (const participant of room.remoteParticipants.values()) {
+            for (const publication of participant.trackPublications.values()) {
+              if (publication.track) {
+                attachRemoteAudio(publication.track)
+              }
+            }
+          }
+        }
+
+        room.on(RoomEvent.TrackSubscribed, (track) => {
+          if (cancelled) return
+          attachRemoteAudio(track)
           maybeStartRecording(room)
+        })
+
+        room.on(RoomEvent.TrackUnsubscribed, (track) => {
+          if (cancelled) return
+          detachRemoteAudio(track)
         })
 
         room.on(RoomEvent.LocalTrackPublished, () => {
@@ -245,6 +286,7 @@ export default function Call() {
           return
         }
 
+        attachExistingRemoteAudio()
         setLoading(false)
         maybeStartRecording(room)
       } catch (err) {
@@ -270,6 +312,22 @@ export default function Call() {
 
     return () => {
       cancelled = true
+      const room = roomRef.current
+      room?.removeAllListeners()
+      if (room) {
+        for (const participant of room.remoteParticipants.values()) {
+          for (const publication of participant.trackPublications.values()) {
+            if (
+              publication.track &&
+              attachedAudioTrackSidsRef.current.has(publication.track.sid)
+            ) {
+              const elements = publication.track.detach()
+              elements.forEach((el) => el.remove())
+            }
+          }
+        }
+      }
+      attachedAudioTrackSidsRef.current.clear()
       if (mediaRecorderRef.current?.state !== 'inactive') {
         mediaRecorderRef.current?.stop()
       }
