@@ -1,0 +1,31 @@
+.results-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-bg);
+}
+
+.results-card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-subtle);
+}
+
+.results-message {
+  margin: 0 0 var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.results-debate-id {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}

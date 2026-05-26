@@ -6,6 +6,7 @@ import TopicSelect from './pages/TopicSelect'
 import Matchmaking from './pages/Matchmaking'
 import TopicReveal from './pages/TopicReveal'
 import Call from './pages/Call'
+import Results from './pages/Results'
 import Leaderboard from './pages/Leaderboard'
 
 function ProtectedRoute({ children }) {
@@ -78,6 +79,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Call />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results/:debateId"
+            element={
+              <ProtectedRoute>
+                <Results />
               </ProtectedRoute>
             }
           />
