@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC80R-ozp75Dt8pxoAoCGNvELc8gcb_92A",
-  authDomain: "debate-app-411.firebaseapp.com",
-  projectId: "debate-app-411",
-  storageBucket: "debate-app-411.firebasestorage.app",
-  messagingSenderId: "215176576330",
-  appId: "1:215176576330:web:64a36db3e9eb94de1855b3"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 }
 
 const app = initializeApp(firebaseConfig)
