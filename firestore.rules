@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Players can read what they need and write almost nothing. Ratings, matches,
+// transcripts and results are written only by the API functions, which sign in
+// as the judge bot account below.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isServer() {
+      return signedIn() && request.auth.uid == 'N2VtCi2OGPQv0Biogfkzq7pXczA3';
+    }
+    function validName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 30;
+    }
+    function inDebate(debateId) {
+      return request.auth.uid in
+        get(/databases/$(database)/documents/debates/$(debateId)).data.players;
+    }
+
+    // Public profile: name, rating and record. Shown on the leaderboard.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'elo', 'wins', 'losses', 'debates', 'createdAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.elo == 1000
+        && request.resource.data.wins == 0
+        && request.resource.data.losses == 0
+        && request.resource.data.debates == 0
+        && request.resource.data.createdAt == request.time;
+      // Players may only rename themselves.
+      allow update: if isServer() || (
+        signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && validName(request.resource.data.name)
+      );
+      allow delete: if isServer();
+    }
+
+    // Matchmaking queue: server only.
+    match /queue/{uid} {
+      allow read, write: if isServer();
+    }
+
+    match /debates/{debateId} {
+      allow read: if isServer() || (signedIn() && request.auth.uid in resource.data.players);
+      allow write: if isServer();
+
+      match /speeches/{speechId} {
+        allow read: if isServer() || (signedIn() && inDebate(debateId));
+        allow write: if isServer();
+      }
+
+      // Heartbeat each debater writes so the other side can tell they are still there.
+      match /presence/{uid} {
+        allow read: if isServer() || (signedIn() && inDebate(debateId));
+        allow write: if signedIn() && request.auth.uid == uid && inDebate(debateId)
+          && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time;
+      }
+    }
+  }
+}

@@ -1,177 +1,175 @@
 import { useState } from 'react'
 import {
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db } from '../firebase'
-import './Login.css'
+import { auth } from '../firebase'
+import { cleanName, setPendingName } from '../context/AuthContext'
+import { SPEECHES } from '../../shared/format'
 
 const googleProvider = new GoogleAuthProvider()
 
-async function createUserDocument(uid, { name, email }) {
-  await setDoc(doc(db, 'users', uid), {
-    name,
-    email,
-    elo: 1000,
-    usedTopics: [],
-    createdAt: serverTimestamp(),
-  })
-}
-
-async function ensureUserDocument(user) {
-  const userRef = doc(db, 'users', user.uid)
-  const snapshot = await getDoc(userRef)
-
-  if (!snapshot.exists()) {
-    await createUserDocument(user.uid, {
-      name: user.displayName || 'Debater',
-      email: user.email,
-    })
+function explain(error) {
+  switch (error?.code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'That email and password don’t match an account.'
+    case 'auth/email-already-in-use':
+      return 'There’s already an account with that email. Sign in instead.'
+    case 'auth/weak-password':
+      return 'Use a password with at least 6 characters.'
+    case 'auth/invalid-email':
+      return 'That doesn’t look like an email address.'
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Wait a minute and try again.'
+    case 'auth/network-request-failed':
+      return 'Can’t reach the sign-in service. Check your connection.'
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return ''
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the Google sign-in window. Allow pop-ups and try again.'
+    default:
+      return 'Couldn’t sign you in. Try again.'
   }
 }
 
+const minutes = Math.round(SPEECHES.reduce((total, speech) => total + speech.seconds, 0) / 60)
+
 export default function Login() {
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [mode, setMode] = useState('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const signingUp = mode === 'signup'
 
-  async function handleEmailSubmit(e) {
-    e.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault()
     setError('')
-    setLoading(true)
-
+    setBusy(true)
     try {
-      if (isSignUp) {
-        const credential = await createUserWithEmailAndPassword(auth, email, password)
-        await createUserDocument(credential.user.uid, { name: name.trim(), email })
+      if (signingUp) {
+        const displayName = cleanName(name)
+        setPendingName(displayName)
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
+        await updateProfile(credential.user, { displayName }).catch(() => {})
       } else {
-        await signInWithEmailAndPassword(auth, email, password)
+        await signInWithEmailAndPassword(auth, email.trim(), password)
       }
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      setError(explain(err))
+      setBusy(false)
     }
   }
 
-  async function handleGoogleSignIn() {
+  async function handleGoogle() {
     setError('')
-    setLoading(true)
-
+    setBusy(true)
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      await ensureUserDocument(result.user)
+      setPendingName('')
+      await signInWithPopup(auth, googleProvider)
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      setError(explain(err))
+      setBusy(false)
     }
-  }
-
-  function toggleMode() {
-    setIsSignUp(!isSignUp)
-    setError('')
-    setName('')
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <header className="login-header">
-          <h1 className="login-brand">Jalpa</h1>
-          <p>{isSignUp ? 'Create your account' : 'Sign in to continue'}</p>
-        </header>
+    <div className="login">
+      <section className="login__pitch">
+        <p className="brand brand--large">Jalpa</p>
+        <h1 className="login__headline">Argue a real resolution against a real person, out loud.</h1>
+        <p className="login__lede">
+          You get a topic from the high school and college circuit, a side you didn&rsquo;t choose,
+          and one minute to prepare. Then {minutes} minutes of speeches over voice, a written ballot
+          from the judge, and a rating that moves.
+        </p>
+        <ol className="login__flow" aria-label="How a debate runs">
+          {SPEECHES.map((speech) => (
+            <li key={speech.key} className={`login__flow-item login__flow-item--${speech.side}`}>
+              <span>{speech.name}</span>
+              <span>{speech.seconds / 60 >= 1 ? `${speech.seconds / 60} min` : `${speech.seconds} sec`}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        <form className="login-form" onSubmit={handleEmailSubmit}>
-          {isSignUp && (
-            <>
-              <label htmlFor="name">Full name</label>
+      <section className="login__form-wrap">
+        <form className="sheet login__form" onSubmit={handleSubmit}>
+          <h2>{signingUp ? 'Create your account' : 'Sign in'}</h2>
+
+          {signingUp && (
+            <label className="field">
+              <span>Name shown to opponents</span>
               <input
-                id="name"
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+                onChange={(event) => setName(event.target.value)}
+                maxLength={30}
                 required
-                autoComplete="name"
+                autoComplete="nickname"
               />
-            </>
+            </label>
           )}
 
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            autoComplete="email"
-          />
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+            />
+          </label>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            autoComplete={isSignUp ? 'new-password' : 'current-password'}
-            minLength={6}
-          />
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+              autoComplete={signingUp ? 'new-password' : 'current-password'}
+            />
+          </label>
 
-          {error && <p className="login-error">{error}</p>}
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
 
-          <button type="submit" className="login-btn-primary" disabled={loading}>
-            {loading ? 'Please wait…' : isSignUp ? 'Sign up' : 'Sign in'}
+          <button type="submit" className="button button--primary button--block" disabled={busy}>
+            {busy ? 'One moment…' : signingUp ? 'Create account' : 'Sign in'}
           </button>
+
+          <button type="button" className="button button--block" onClick={handleGoogle} disabled={busy}>
+            Continue with Google
+          </button>
+
+          <p className="login__switch">
+            {signingUp ? 'Already have an account?' : 'New here?'}{' '}
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => {
+                setMode(signingUp ? 'signin' : 'signup')
+                setError('')
+              }}
+            >
+              {signingUp ? 'Sign in' : 'Create an account'}
+            </button>
+          </p>
         </form>
-
-        <div className="login-divider">
-          <span>or</span>
-        </div>
-
-        <button
-          type="button"
-          className="login-btn-google"
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          Continue with Google
-        </button>
-
-        <p className="login-toggle">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button type="button" onClick={toggleMode}>
-            {isSignUp ? 'Sign in' : 'Sign up'}
-          </button>
-        </p>
-      </div>
+      </section>
     </div>
   )
 }
