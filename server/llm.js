@@ -16,17 +16,17 @@ const list = (value, fallback) =>
 const judgeModels = () =>
   list(
     process.env.JALPA_JUDGE_MODELS,
-    'gemini-flash-latest,gemini-3-flash-preview,gemini-flash-lite-latest',
+    'gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-flash-lite-latest',
   )
 const transcribeModels = () =>
   list(
     process.env.JALPA_TRANSCRIBE_MODELS,
-    'gemini-flash-lite-latest,gemini-flash-latest,gemini-3-flash-preview',
+    'gemini-3.1-flash-lite,gemini-flash-lite-latest,gemini-3-flash-preview',
   )
 
 export const mockAi = () => process.env.JALPA_MOCK_AI === '1'
 
-async function generate(models, { system, parts, json, timeoutMs }) {
+async function generate(models, { system, parts, json, timeoutMs, parse = (text) => text }) {
   const { app } = await getServer()
   const ai = getAI(app, { backend: new GoogleAIBackend() })
   let lastError = null
@@ -47,12 +47,13 @@ async function generate(models, { system, parts, json, timeoutMs }) {
             ...(json ? { responseMimeType: 'application/json' } : {}),
           },
         },
-        { timeout: Math.min(remaining, 30_000) },
+        { timeout: Math.min(remaining, 25_000) },
       )
       const result = await client.generateContent(parts)
       const text = result.response.text()
-      if (text && text.trim()) return text.trim()
-      lastError = new Error(`${model} returned an empty response`)
+      if (!text || !text.trim()) throw new Error('empty response')
+      // `parse` throws on an unusable reply, which sends us to the next model.
+      return parse(text.trim())
     } catch (err) {
       lastError = err
       console.warn(`[llm] ${model} failed:`, String(err?.message ?? err).slice(0, 200))
@@ -74,11 +75,14 @@ export async function transcribeAudio({ base64, mimeType }) {
   return /^\[?no speech\]?\.?$/i.test(text) ? '' : text
 }
 
-export async function generateJson({ system, prompt }) {
+// Asks for a JSON reply and runs it through `parse`. A reply that `parse`
+// rejects counts as a failure of that model, and the next one is tried.
+export async function generateJson({ system, prompt, parse }) {
   return generate(judgeModels(), {
     system,
     parts: [{ text: prompt }],
     json: true,
+    parse,
     timeoutMs: 50_000,
   })
 }

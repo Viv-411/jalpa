@@ -12,7 +12,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import Shell from '../components/Shell'
-import { cleanName, useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/AuthContext'
+import { cleanName } from '../lib/profile'
 import { opponentOf, outcomeFor, shortDate, signed } from '../lib/results'
 import { sideLabel } from '../../shared/format'
 

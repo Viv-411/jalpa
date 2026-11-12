@@ -2,18 +2,9 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase'
+import { cleanName, takePendingName } from '../lib/profile'
 
 const AuthContext = createContext(null)
-
-// The name typed on the sign-up form, used when the profile is first created.
-let pendingName = ''
-export function setPendingName(name) {
-  pendingName = name
-}
-
-export function cleanName(value) {
-  return (value ?? '').replace(/\s+/g, ' ').trim().slice(0, 30)
-}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -48,7 +39,7 @@ export function AuthProvider({ children }) {
           creating = true
           // First sign-in: every debater starts at 1000.
           setDoc(ref, {
-            name: cleanName(pendingName) || cleanName(currentUser.displayName) || 'Debater',
+            name: cleanName(takePendingName()) || cleanName(currentUser.displayName) || 'Debater',
             elo: 1000,
             wins: 0,
             losses: 0,

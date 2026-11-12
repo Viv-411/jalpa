@@ -77,9 +77,11 @@ async function decide(debate, speeches) {
 
   const judgment = mockAi()
     ? mockJudgment(debate, speeches)
-    : normalizeJudgment(
-        await generateJson({ system: JUDGE_SYSTEM, prompt: buildJudgePrompt(debate, speeches) }),
-      )
+    : await generateJson({
+        system: JUDGE_SYSTEM,
+        prompt: buildJudgePrompt(debate, speeches),
+        parse: normalizeJudgment,
+      })
   return { winner: debate[judgment.winner], reason: 'decision', judgment }
 }
 

@@ -88,11 +88,8 @@ function cleanList(value, max) {
 export function normalizeJudgment(rawText) {
   let raw
   try {
-    const cleaned = rawText
-      .trim()
-      .replace(/^```(?:json)?/i, '')
-      .replace(/```$/, '')
-      .trim()
+    // Tolerate code fences or stray text around the JSON object.
+    const cleaned = rawText.slice(rawText.indexOf('{'), rawText.lastIndexOf('}') + 1)
     raw = JSON.parse(cleaned)
   } catch {
     throw new Error('Judge reply was not valid JSON')
@@ -117,7 +114,13 @@ export function normalizeJudgment(rawText) {
   else if (named) winner = named
   else throw new Error('Judge reply did not name a winner')
 
-  const decision = typeof raw.decision === 'string' ? raw.decision.trim().slice(0, 2000) : ''
+  const decision =
+    typeof raw.decision === 'string'
+      ? raw.decision
+          .trim()
+          .replace(/^reason for decision:\s*/i, '')
+          .slice(0, 2000)
+      : ''
   if (!decision) throw new Error('Judge reply is missing the decision')
 
   return {

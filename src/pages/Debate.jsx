@@ -17,16 +17,20 @@ const HEARTBEAT_MS = 8000
 const AWAY_AFTER_MS = 30_000
 
 function useDebate(debateId) {
-  const [debate, setDebate] = useState(undefined)
+  // undefined while loading, null if it doesn't exist or isn't ours to see.
+  const [loaded, setLoaded] = useState({ id: null, debate: undefined })
   useEffect(() => {
-    setDebate(undefined)
     return onSnapshot(
       doc(db, 'debates', debateId),
-      (snapshot) => setDebate(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null),
-      () => setDebate(null),
+      (snapshot) =>
+        setLoaded({
+          id: debateId,
+          debate: snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null,
+        }),
+      () => setLoaded({ id: debateId, debate: null }),
     )
   }, [debateId])
-  return debate
+  return loaded.id === debateId ? loaded.debate : undefined
 }
 
 function ConnectionNotices({ voice, opponentName }) {

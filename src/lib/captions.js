@@ -8,11 +8,16 @@ const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 export function createCaptioner(onUpdate) {
   // Test hook: automated tests (emulator builds only) can supply the words.
   if (import.meta.env.VITE_USE_EMULATORS === '1' && typeof window.__jalpaTestSpeech === 'function') {
+    let timer = null
     return {
       start() {
         onUpdate(window.__jalpaTestSpeech())
+        timer = setInterval(() => onUpdate(window.__jalpaTestSpeech()), 700)
       },
-      stop: () => window.__jalpaTestSpeech(),
+      stop() {
+        clearInterval(timer)
+        return window.__jalpaTestSpeech()
+      },
     }
   }
 

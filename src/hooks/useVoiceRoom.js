@@ -29,6 +29,23 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
   const [caption, setCaption] = useState({ phase: null, text: '' })
   const [attempt, setAttempt] = useState(0)
   const roomRef = useRef(null)
+  // Microphone changes run one at a time, in order, so a slow permission
+  // prompt can never leave the mic in the wrong state for a speech.
+  const micQueue = useRef(Promise.resolve())
+  const wantMic = useRef(false)
+
+  const setMic = useCallback((room, resolveEnabled) => {
+    micQueue.current = micQueue.current.then(async () => {
+      if (roomRef.current !== room) return
+      try {
+        await room.localParticipant.setMicrophoneEnabled(resolveEnabled())
+        setMicBlocked(false)
+      } catch {
+        setMicBlocked(true)
+      }
+    })
+    return micQueue.current
+  }, [])
 
   useEffect(() => {
     if (!active) return undefined
@@ -42,6 +59,7 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
       },
     })
     roomRef.current = room
+    micQueue.current = Promise.resolve()
 
     const syncOpponent = () => {
       const present = Array.from(room.remoteParticipants.values()).some(
@@ -98,13 +116,8 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
 
         // Ask for the microphone now (during prep) and leave it muted,
         // so nobody is fumbling with a permission prompt mid-speech.
-        try {
-          await room.localParticipant.setMicrophoneEnabled(true)
-          await room.localParticipant.setMicrophoneEnabled(false)
-          setMicBlocked(false)
-        } catch {
-          setMicBlocked(true)
-        }
+        setMic(room, () => true)
+        setMic(room, () => wantMic.current)
         if (!cancelled) setReady(true)
       } catch (err) {
         if (cancelled) return
@@ -125,7 +138,7 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
       if (roomRef.current === room) roomRef.current = null
       setConnection('idle')
     }
-  }, [active, debateId, opponentUid, attempt])
+  }, [active, debateId, opponentUid, attempt, setMic])
 
   // Open the mic and record while it is this debater's speech.
   useEffect(() => {
@@ -146,43 +159,38 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
       lastSent = now
       room.localParticipant
         .publishData(encoder.encode(JSON.stringify({ type: 'caption', phase, text })), {
-          reliable: false,
+          reliable: true,
         })
-        .catch(() => {})
+        .catch((err) => console.warn('Caption send failed', err?.message ?? err))
     })
 
     async function begin() {
-      try {
-        await room.localParticipant.setMicrophoneEnabled(true)
-        setMicBlocked(false)
-      } catch {
-        setMicBlocked(true)
-      }
+      wantMic.current = true
+      captioner.start()
+      await setMic(room, () => wantMic.current)
       if (ended) return
 
       const track = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track
         ?.mediaStreamTrack
       const mimeType = recorderMimeType()
-      if (track && mimeType !== null) {
-        try {
-          recorder = new MediaRecorder(new MediaStream([track]), {
-            ...(mimeType ? { mimeType } : {}),
-            audioBitsPerSecond: 32_000,
-          })
-          recorded = new Promise((resolve) => {
-            recorder.onstop = () =>
-              resolve(new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/webm' }))
-          })
-          recorder.ondataavailable = (event) => {
-            if (event.data.size > 0) chunks.push(event.data)
-          }
-          recorder.start(1000)
-        } catch (err) {
-          console.warn('Could not record this speech', err)
-          recorder = null
+      if (!track || mimeType === null) return
+      try {
+        recorder = new MediaRecorder(new MediaStream([track]), {
+          ...(mimeType ? { mimeType } : {}),
+          audioBitsPerSecond: 32_000,
+        })
+        recorded = new Promise((resolve) => {
+          recorder.onstop = () =>
+            resolve(new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/webm' }))
+        })
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) chunks.push(event.data)
         }
+        recorder.start(1000)
+      } catch (err) {
+        console.warn('Could not record this speech', err)
+        recorder = null
       }
-      captioner.start()
     }
     begin()
 
@@ -195,9 +203,10 @@ export function useVoiceRoom({ debateId, opponentUid, active, speakPhase }) {
       } else {
         uploadSpeech({ debateId, phase, blob: null, captions })
       }
-      room.localParticipant.setMicrophoneEnabled(false).catch(() => {})
+      wantMic.current = false
+      setMic(room, () => wantMic.current)
     }
-  }, [ready, speakPhase, debateId])
+  }, [ready, speakPhase, debateId, setMic])
 
   const unlockAudio = useCallback(async () => {
     try {

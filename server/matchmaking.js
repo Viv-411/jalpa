@@ -107,6 +107,8 @@ async function pair(db, meUid, themUid) {
     const pro = meIsPro ? meUid : themUid
     const con = meIsPro ? themUid : meUid
     const schedule = buildSchedule(timeScale())
+    const prepOverride = Number(process.env.JALPA_PREP_SECONDS)
+    if (prepOverride > 0) schedule.prepSeconds = prepOverride
 
     tx.set(debateRef, {
       players: [meUid, themUid],

@@ -12,9 +12,13 @@ import {
   inMemoryPersistence,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore/lite'
+import { connectFirestoreEmulator, getFirestore, setLogLevel } from 'firebase/firestore/lite'
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose'
 import { HttpError } from './errors.js'
+
+// Transactions that lose a race are retried automatically; the SDK's own
+// logging of each retry is just noise. Real failures are logged by http.js.
+setLogLevel('silent')
 
 export const usingEmulators = () => process.env.JALPA_EMULATORS === '1'
 

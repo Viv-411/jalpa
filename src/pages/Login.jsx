@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
-import { cleanName, setPendingName } from '../context/AuthContext'
+import { cleanName, setPendingName } from '../lib/profile'
 import { SPEECHES } from '../../shared/format'
 
 const googleProvider = new GoogleAuthProvider()

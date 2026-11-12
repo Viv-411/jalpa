@@ -6,7 +6,6 @@ export function useNow(intervalMs = 250, enabled = true) {
   const [now, setNow] = useState(() => serverNow())
   useEffect(() => {
     if (!enabled) return undefined
-    setNow(serverNow())
     const timer = setInterval(() => setNow(serverNow()), intervalMs)
     return () => clearInterval(timer)
   }, [intervalMs, enabled])
