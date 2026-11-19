@@ -1,7 +1,5 @@
 # Jalpa
 
-> The newest version of Jalpa (server-side matchmaking, the full debate flow, AI judging and Elo) is on the [`rebuild`](https://github.com/Viv-411/jalpa/tree/rebuild) branch. This README describes that version.
-
 Live one-on-one voice debates on real tournament resolutions, judged by an AI
 judge and rated with Elo.
 

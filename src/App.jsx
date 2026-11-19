@@ -1,115 +1,46 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Login from './pages/Login'
+import Debate from './pages/Debate'
 import Home from './pages/Home'
-import TopicSelect from './pages/TopicSelect'
-import Matchmaking from './pages/Matchmaking'
-import TopicReveal from './pages/TopicReveal'
-import Call from './pages/Call'
-import Results from './pages/Results'
 import Leaderboard from './pages/Leaderboard'
+import Login from './pages/Login'
+import Play from './pages/Play'
 
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+function Loading() {
+  return (
+    <p className="app-loading" role="status">
+      Loading…
+    </p>
+  )
+}
 
-  if (loading) {
-    return <p className="app-loading">Loading…</p>
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
+function Private({ children }) {
+  const { user, profile, loading } = useAuth()
+  if (loading || (user && !profile)) return <Loading />
+  if (!user) return <Navigate to="/login" replace />
   return children
 }
 
-function PublicRoute({ children }) {
+function Public({ children }) {
   const { user, loading } = useAuth()
-
-  if (loading) {
-    return <p className="app-loading">Loading…</p>
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />
-  }
-
+  if (loading) return <Loading />
+  if (user) return <Navigate to="/" replace />
   return children
 }
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/topics"
-            element={
-              <ProtectedRoute>
-                <TopicSelect />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/matchmaking"
-            element={
-              <ProtectedRoute>
-                <Matchmaking />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/debate/:debateId"
-            element={
-              <ProtectedRoute>
-                <TopicReveal />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/call/:debateId"
-            element={
-              <ProtectedRoute>
-                <Call />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/results/:debateId"
-            element={
-              <ProtectedRoute>
-                <Results />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
-                <Leaderboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
+          <Route path="/login" element={<Public><Login /></Public>} />
+          <Route path="/" element={<Private><Home /></Private>} />
+          <Route path="/play" element={<Private><Play /></Private>} />
+          <Route path="/debate/:debateId" element={<Private><Debate /></Private>} />
+          <Route path="/leaderboard" element={<Private><Leaderboard /></Private>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   )
 }
-
-export default App
