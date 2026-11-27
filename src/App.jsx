@@ -5,12 +5,13 @@ import Home from './pages/Home'
 import Leaderboard from './pages/Leaderboard'
 import Login from './pages/Login'
 import Play from './pages/Play'
+import { Logo } from './components/ui'
 
 function Loading() {
   return (
-    <p className="app-loading" role="status">
-      Loading…
-    </p>
+    <div className="app-loading" role="status" aria-label="Loading">
+      <Logo withWord={false} />
+    </div>
   )
 }
 

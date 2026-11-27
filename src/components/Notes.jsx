@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Lock } from 'lucide-react'
 
 function read(key) {
   try {
@@ -23,13 +24,20 @@ export default function Notes({ debateId }) {
 
   return (
     <aside className="notes">
-      <label htmlFor="round-notes">Your notes</label>
-      <p className="notes__hint">Only you can see these. The judge doesn&rsquo;t read them.</p>
+      <div className="notes__head">
+        <label htmlFor="round-notes" className="notes__title">
+          Your notes
+        </label>
+        <span className="notes__hint">
+          <Lock size={12} strokeWidth={2.5} aria-hidden="true" />
+          Only you can see these
+        </span>
+      </div>
       <textarea
         id="round-notes"
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="Jot down your case and what your opponent says…"
+        placeholder={'Your case, their arguments, what to answer…'}
         spellCheck="false"
       />
     </aside>

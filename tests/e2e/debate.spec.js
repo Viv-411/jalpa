@@ -18,6 +18,7 @@ async function newDebater(browser, name, speech, viewport) {
   const page = await context.newPage()
   await page.goto('/')
   await expect(page).toHaveURL(/\/login$/)
+  await snap(page, `00-login-${viewport.width}`)
   await page.getByRole('button', { name: 'Create an account' }).click()
   await page.getByLabel('Name shown to opponents').fill(name)
   await page.getByLabel('Email').fill(`${name.toLowerCase()}-${Date.now()}@example.com`)
@@ -38,17 +39,21 @@ test('two people debate, get a ballot, and the ratings move', async ({ browser }
 
   // Both look for a debate; "any subject" pairs with a specific one.
   await ana.getByRole('link', { name: 'Find a debate' }).click()
+  await expect(ana.getByRole('heading', { name: 'Pick a subject' })).toBeVisible()
   await snap(ana, '02-choose-subject')
   await ana.getByRole('button', { name: /Science and technology/ }).click()
   await expect(ana.getByRole('heading', { name: 'Looking for an opponent' })).toBeVisible()
   await snap(ana, '03-searching')
 
   await ben.getByRole('link', { name: 'Find a debate' }).click()
+  await expect(ben.getByRole('heading', { name: 'Pick a subject' })).toBeVisible()
+  await snap(ben, '02-choose-subject-phone')
   await ben.getByRole('button', { name: /Any subject/ }).click()
 
   await expect(ana).toHaveURL(/\/debate\//)
   await expect(ben).toHaveURL(/\/debate\//)
   expect(new URL(ana.url()).pathname).toBe(new URL(ben.url()).pathname)
+  const debatePath = new URL(ana.url()).pathname
 
   // Prep: same resolution for both, opposite sides.
   const topic = await ana.locator('.resolution__text').innerText()
@@ -98,6 +103,10 @@ test('two people debate, get a ballot, and the ratings move', async ({ browser }
   }
 
   // Judging, then the ballot.
+  if (shots) {
+    const judging = ana.getByRole('heading', { name: 'The judge is deciding' })
+    if (await judging.isVisible({ timeout: 15_000 }).catch(() => false)) await snap(ana, '055-judging')
+  }
   await expect(ana.getByRole('heading', { name: 'You won' })).toBeVisible({ timeout: 60_000 })
   await expect(ben.getByRole('heading', { name: 'You lost' })).toBeVisible({ timeout: 60_000 })
   await expect(ana.locator('.ballot__change')).toHaveText('+16')
@@ -121,13 +130,27 @@ test('two people debate, get a ballot, and the ratings move', async ({ browser }
   await expect(rows.nth(1)).toContainText('984')
   await snap(ana, '07-leaderboard')
 
+  if (shots) {
+    await ben.getByRole('navigation').getByRole('link', { name: 'Leaderboard' }).click()
+    await expect(ben.locator('.board tbody tr')).toHaveCount(2)
+    await snap(ben, '07-leaderboard-phone')
+  }
   await ben.getByRole('navigation').getByRole('link', { name: 'Home' }).click()
   await expect(ben.locator('.record__rating')).toHaveText('984')
   await expect(ben.locator('.match')).toContainText('Lost')
   await expect(ben.locator('.match')).toContainText(topic)
   await snap(ben, '08-home-after-phone')
   await ana.goto('/')
+  await expect(ana.getByRole('heading', { level: 1, name: 'Ana' })).toBeVisible()
   await snap(ana, '08-home-after')
+  if (shots) {
+    await ana.emulateMedia({ colorScheme: 'dark' })
+    await snap(ana, '09-home-dark')
+    await ana.goto(debatePath)
+    await expect(ana.getByRole('heading', { name: 'You won' })).toBeVisible()
+    await snap(ana, '09-ballot-dark')
+    await ana.emulateMedia({ colorScheme: 'light' })
+  }
 
   // The ballot can be reopened from history.
   await ben.locator('.match').click()
@@ -171,7 +194,8 @@ test('forfeiting hands the win to the opponent, and outsiders are kept out', asy
   await cat.getByRole('button', { name: 'Save name' }).click()
   await expect(cat.getByRole('heading', { level: 1, name: 'Catalina' })).toBeVisible()
 
-  // Signing out returns to the login page.
+  // Signing out (from the account menu) returns to the login page.
+  await cat.getByRole('button', { name: 'Account' }).click()
   await cat.getByRole('button', { name: 'Sign out' }).click()
   await expect(cat).toHaveURL(/\/login$/)
 })
